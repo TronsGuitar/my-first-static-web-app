@@ -1480,12 +1480,20 @@
               ctx.beginPath();
               ctx.moveTo(edge.points[0].x, edge.points[0].y);
               ctx.lineTo(edge.points[1].x, edge.points[1].y);
+              ctx.strokeStyle = "rgba(2, 4, 13, .86)";
+              ctx.lineWidth = bordersVoid ? 7 : 5;
+              ctx.shadowColor = "rgba(0, 0, 0, .9)";
+              ctx.shadowBlur = bordersVoid ? 10 : 7;
+              ctx.shadowOffsetY = bordersVoid ? 6 : 4;
+              ctx.stroke();
+
               ctx.strokeStyle = bordersVoid
                 ? "rgba(127, 229, 255, .9)"
                 : "rgba(166, 184, 255, .5)";
               ctx.lineWidth = bordersVoid ? 2.2 : 1.2;
               ctx.shadowColor = bordersVoid ? "rgba(71, 181, 255, .8)" : "transparent";
               ctx.shadowBlur = bordersVoid ? 7 : 0;
+              ctx.shadowOffsetY = 0;
               ctx.stroke();
               ctx.restore();
             });
