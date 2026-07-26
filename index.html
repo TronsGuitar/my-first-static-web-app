@@ -1454,6 +1454,9 @@
             } else if (key === startKey) {
               top.addColorStop(0, "#93b5ff");
               top.addColorStop(1, "#596bd7");
+            } else if (tile.z === 0) {
+              top.addColorStop(0, "hsl(224 38% 28%)");
+              top.addColorStop(1, "hsl(236 42% 13%)");
             } else {
               top.addColorStop(0, `hsl(${218 + tile.z * 8} 47% 68%)`);
               top.addColorStop(1, `hsl(${236 + tile.z * 8} 38% 42%)`);
