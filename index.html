@@ -1420,7 +1420,7 @@
             const east = project(tile.x + 1, tile.y, tile.z);
             const south = project(tile.x + 1, tile.y + 1, tile.z);
             const west = project(tile.x, tile.y + 1, tile.z);
-            const depth = 10 + tile.z * 2;
+            const depth = 16 + tile.z * 3;
             const key = `${tile.x},${tile.y}`;
 
             polygon(
@@ -1462,6 +1462,33 @@
               top.addColorStop(1, `hsl(${236 + tile.z * 8} 38% 42%)`);
             }
             polygon([north, east, south, west], top, "rgba(211, 229, 255, .22)");
+
+            const neighborHeight = (x, y) => {
+              const value = level.map[y]?.[x];
+              return value === undefined || value === "." ? -1 : Number(value);
+            };
+            const exposedEdges = [
+              { points: [north, east], neighbor: neighborHeight(tile.x, tile.y - 1) },
+              { points: [east, south], neighbor: neighborHeight(tile.x + 1, tile.y) },
+              { points: [south, west], neighbor: neighborHeight(tile.x, tile.y + 1) },
+              { points: [west, north], neighbor: neighborHeight(tile.x - 1, tile.y) },
+            ];
+            exposedEdges.forEach((edge) => {
+              if (edge.neighbor >= tile.z) return;
+              const bordersVoid = edge.neighbor < 0;
+              ctx.save();
+              ctx.beginPath();
+              ctx.moveTo(edge.points[0].x, edge.points[0].y);
+              ctx.lineTo(edge.points[1].x, edge.points[1].y);
+              ctx.strokeStyle = bordersVoid
+                ? "rgba(127, 229, 255, .9)"
+                : "rgba(166, 184, 255, .5)";
+              ctx.lineWidth = bordersVoid ? 2.2 : 1.2;
+              ctx.shadowColor = bordersVoid ? "rgba(71, 181, 255, .8)" : "transparent";
+              ctx.shadowBlur = bordersVoid ? 7 : 0;
+              ctx.stroke();
+              ctx.restore();
+            });
 
             if (checkpointKeys.has(key)) {
               const center = project(tile.x + 0.5, tile.y + 0.5, tile.z);
@@ -1564,18 +1591,23 @@
             const radius = Math.max(9, tileWidth * 0.215) * scale;
             ctx.save();
             ctx.globalAlpha = falling ? Math.max(0.12, 1 - sim.fall) : 1;
-            ctx.fillStyle = "rgba(0, 0, 0, .34)";
+            ctx.fillStyle = falling ? "rgba(255, 79, 145, .62)" : "rgba(0, 0, 0, .34)";
             ctx.beginPath();
             ctx.ellipse(
               point.x + 3,
               point.y + 6,
-              radius * 0.9,
-              radius * 0.35,
+              radius * (falling ? 1.35 : 0.9),
+              radius * (falling ? 0.48 : 0.35),
               0,
               0,
               Math.PI * 2,
             );
             ctx.fill();
+            if (falling) {
+              ctx.strokeStyle = "rgba(255, 151, 190, .9)";
+              ctx.lineWidth = 2;
+              ctx.stroke();
+            }
             const sphere = ctx.createRadialGradient(
               point.x - radius * 0.38,
               point.y - radius * 1.25 + fallDistance,
