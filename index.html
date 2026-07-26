@@ -1526,6 +1526,71 @@
             }
           });
 
+          function drawHigherTileOcclusion(baseZ, worldDepth, objectCenter, objectRadius) {
+            tiles.forEach((tile) => {
+              if (tile.z <= baseZ || tile.x + tile.y + 1 <= worldDepth) return;
+
+              const north = project(tile.x, tile.y, tile.z);
+              const east = project(tile.x + 1, tile.y, tile.z);
+              const south = project(tile.x + 1, tile.y + 1, tile.z);
+              const west = project(tile.x, tile.y + 1, tile.z);
+              const depth = 16 + tile.z * 3;
+              const faceBottom = { x: south.x, y: south.y + depth };
+              const bounds = {
+                left: Math.min(north.x, east.x, south.x, west.x),
+                right: Math.max(north.x, east.x, south.x, west.x),
+                top: north.y,
+                bottom: faceBottom.y,
+              };
+              if (
+                bounds.right < objectCenter.x - objectRadius ||
+                bounds.left > objectCenter.x + objectRadius ||
+                bounds.bottom < objectCenter.y - objectRadius ||
+                bounds.top > objectCenter.y + objectRadius
+              ) {
+                return;
+              }
+
+              polygon(
+                [
+                  east,
+                  south,
+                  faceBottom,
+                  { x: east.x, y: east.y + depth },
+                ],
+                `hsl(${232 + tile.z * 6} 34% ${19 + tile.z * 2}%)`,
+                "rgba(12, 14, 34, .8)",
+              );
+              polygon(
+                [
+                  west,
+                  south,
+                  faceBottom,
+                  { x: west.x, y: west.y + depth },
+                ],
+                `hsl(${248 + tile.z * 4} 34% ${15 + tile.z * 2}%)`,
+                "rgba(12, 14, 34, .8)",
+              );
+
+              const key = `${tile.x},${tile.y}`;
+              const top = ctx.createLinearGradient(north.x, north.y, south.x, south.y);
+              if (key === finishKey) {
+                top.addColorStop(0, "#fff4a8");
+                top.addColorStop(1, "#f0a731");
+              } else if (checkpointKeys.has(key)) {
+                top.addColorStop(0, "#9affdf");
+                top.addColorStop(1, "#2ba89d");
+              } else if (key === startKey) {
+                top.addColorStop(0, "#93b5ff");
+                top.addColorStop(1, "#596bd7");
+              } else {
+                top.addColorStop(0, `hsl(${218 + tile.z * 8} 47% 68%)`);
+                top.addColorStop(1, `hsl(${236 + tile.z * 8} 38% 42%)`);
+              }
+              polygon([north, east, south, west], top, "rgba(211, 229, 255, .22)");
+            });
+          }
+
           level.bumpers.forEach((bumper, index) => {
             const tile = tileAt(level, bumper.x, bumper.y);
             if (!tile) return;
@@ -1579,6 +1644,12 @@
             ctx.fill();
             ctx.strokeStyle = "rgba(255,255,255,.28)";
             ctx.stroke();
+            drawHigherTileOcclusion(
+              tile.z,
+              position.x + position.y,
+              { x: point.x, y: point.y - 8 },
+              13,
+            );
           });
 
           const playerTile =
@@ -1635,6 +1706,12 @@
             ctx.lineWidth = 1.2;
             ctx.stroke();
             ctx.restore();
+            drawHigherTileOcclusion(
+              playerTile.z,
+              sim.x + sim.y,
+              { x: point.x, y: point.y - radius * 0.74 + fallDistance },
+              radius,
+            );
           }
 
           sim.particles = sim.particles.filter((particle) => {
