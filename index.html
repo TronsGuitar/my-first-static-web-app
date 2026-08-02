@@ -1651,6 +1651,72 @@
           const route = solutionPath(level);
           if (route.length > 1) {
             const routePoints = route.map((point) => project(point.x, point.y, point.z));
+
+            route.slice(0, -1).forEach((point, index) => {
+              const next = route[index + 1];
+              const heightChange = next.z - point.z;
+              if (heightChange === 0) return;
+
+              const from = routePoints[index];
+              const to = routePoints[index + 1];
+              const dx = to.x - from.x;
+              const dy = to.y - from.y;
+              const length = Math.max(1, Math.hypot(dx, dy));
+              const normalX = -dy / length;
+              const normalY = dx / length;
+              const halfWidth = tileWidth * 0.24;
+              const ramp = [
+                { x: from.x + normalX * halfWidth, y: from.y + normalY * halfWidth },
+                { x: to.x + normalX * halfWidth, y: to.y + normalY * halfWidth },
+                { x: to.x - normalX * halfWidth, y: to.y - normalY * halfWidth },
+                { x: from.x - normalX * halfWidth, y: from.y - normalY * halfWidth },
+              ];
+              const rampFill = ctx.createLinearGradient(from.x, from.y, to.x, to.y);
+              if (heightChange > 0) {
+                rampFill.addColorStop(0, "#49300f");
+                rampFill.addColorStop(1, "#ffc93d");
+              } else {
+                rampFill.addColorStop(0, "#ffc93d");
+                rampFill.addColorStop(1, "#49300f");
+              }
+              polygon(ramp, rampFill, "rgba(255, 239, 147, .95)");
+
+              ctx.save();
+              ctx.strokeStyle = "rgba(76, 42, 8, .78)";
+              ctx.lineWidth = 1.5;
+              [0.2, 0.4, 0.6, 0.8].forEach((amount) => {
+                const centerX = from.x + dx * amount;
+                const centerY = from.y + dy * amount;
+                ctx.beginPath();
+                ctx.moveTo(
+                  centerX + normalX * halfWidth * 0.82,
+                  centerY + normalY * halfWidth * 0.82,
+                );
+                ctx.lineTo(
+                  centerX - normalX * halfWidth * 0.82,
+                  centerY - normalY * halfWidth * 0.82,
+                );
+                ctx.stroke();
+              });
+
+              const middleX = (from.x + to.x) / 2;
+              const middleY = (from.y + to.y) / 2;
+              ctx.translate(middleX, middleY);
+              ctx.rotate(Math.atan2(dy, dx));
+              ctx.fillStyle = "#fff8c7";
+              ctx.font = `900 ${Math.max(7, tileWidth * 0.14)}px Arial`;
+              ctx.textAlign = "center";
+              ctx.textBaseline = "bottom";
+              ctx.shadowColor = "rgba(0, 0, 0, .95)";
+              ctx.shadowBlur = 4;
+              ctx.fillText(
+                heightChange > 0 ? "UP ▲" : "DOWN ▼",
+                0,
+                -halfWidth - 3,
+              );
+              ctx.restore();
+            });
+
             ctx.save();
             ctx.beginPath();
             ctx.moveTo(routePoints[0].x, routePoints[0].y);
