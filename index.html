@@ -1219,9 +1219,9 @@
         function projection(level) {
           const rows = level.map.length;
           const columns = Math.max(...level.map.map((row) => row.length));
-          const tileWidth = Math.min(59, (width - 32) / ((rows + columns) / 2));
-          const tileHeight = tileWidth * 0.52;
-          const heightStep = tileHeight * 0.82;
+          const tileWidth = Math.min(55, (width - 32) / ((rows + columns) / 2));
+          const tileHeight = tileWidth * 0.64;
+          const heightStep = tileHeight * 0.58;
           const originX = width / 2;
           const originY = Math.max(
             42,
@@ -1490,7 +1490,7 @@
             const east = project(tile.x + 1, tile.y, tile.z);
             const south = project(tile.x + 1, tile.y + 1, tile.z);
             const west = project(tile.x, tile.y + 1, tile.z);
-            const depth = 16 + tile.z * 3;
+            const depth = 12 + tile.z * 2;
             const key = `${tile.x},${tile.y}`;
 
             polygon(
@@ -1613,7 +1613,7 @@
               const east = project(tile.x + 1, tile.y, tile.z);
               const south = project(tile.x + 1, tile.y + 1, tile.z);
               const west = project(tile.x, tile.y + 1, tile.z);
-              const depth = 16 + tile.z * 3;
+              const depth = 12 + tile.z * 2;
               const eastBottom = { x: east.x, y: east.y + depth };
               const southBottom = { x: south.x, y: south.y + depth };
               const westBottom = { x: west.x, y: west.y + depth };
