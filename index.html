@@ -1057,6 +1057,76 @@
           return { x: tx, y: ty, z: Number(value) };
         }
 
+        const solutionCache = new WeakMap();
+
+        function solutionPath(level) {
+          if (solutionCache.has(level)) return solutionCache.get(level);
+
+          const start = {
+            x: Math.floor(level.start.x),
+            y: Math.floor(level.start.y),
+          };
+          const finish = {
+            x: Math.floor(level.finish.x),
+            y: Math.floor(level.finish.y),
+          };
+          const keyOf = (point) => `${point.x},${point.y}`;
+          const heightAt = (x, y) => {
+            const value = level.map[y]?.[x];
+            return value === undefined || value === "." ? null : Number(value);
+          };
+          const queue = [start];
+          const previous = new Map([[keyOf(start), null]]);
+          const directions = [
+            { x: 1, y: 0 },
+            { x: 0, y: 1 },
+            { x: -1, y: 0 },
+            { x: 0, y: -1 },
+          ];
+
+          while (queue.length > 0) {
+            const current = queue.shift();
+            if (current.x === finish.x && current.y === finish.y) break;
+            const currentHeight = heightAt(current.x, current.y);
+
+            directions.forEach((direction) => {
+              const next = {
+                x: current.x + direction.x,
+                y: current.y + direction.y,
+              };
+              const nextHeight = heightAt(next.x, next.y);
+              const nextKey = keyOf(next);
+              if (
+                nextHeight === null ||
+                previous.has(nextKey) ||
+                Math.abs(nextHeight - currentHeight) > 1
+              ) {
+                return;
+              }
+              previous.set(nextKey, current);
+              queue.push(next);
+            });
+          }
+
+          const route = [];
+          let cursor = finish;
+          if (!previous.has(keyOf(cursor))) {
+            solutionCache.set(level, route);
+            return route;
+          }
+          while (cursor) {
+            route.push({
+              x: cursor.x + 0.5,
+              y: cursor.y + 0.5,
+              z: heightAt(cursor.x, cursor.y),
+            });
+            cursor = previous.get(keyOf(cursor));
+          }
+          route.reverse();
+          solutionCache.set(level, route);
+          return route;
+        }
+
         function enemyPosition(enemy) {
           const wave = (Math.sin(sim.clock * enemy.speed + enemy.phase) + 1) / 2;
           return {
@@ -1577,6 +1647,27 @@
               ctx.closePath();
             });
             ctx.clip("evenodd");
+          }
+
+          const route = solutionPath(level);
+          if (route.length > 1) {
+            const routePoints = route.map((point) => project(point.x, point.y, point.z));
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(routePoints[0].x, routePoints[0].y);
+            routePoints.slice(1).forEach((point) => ctx.lineTo(point.x, point.y));
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            ctx.strokeStyle = "rgba(5, 7, 18, .82)";
+            ctx.lineWidth = Math.max(7, tileWidth * 0.13);
+            ctx.stroke();
+
+            ctx.strokeStyle = "#ffe34f";
+            ctx.lineWidth = Math.max(3.5, tileWidth * 0.065);
+            ctx.shadowColor = "rgba(255, 218, 54, .95)";
+            ctx.shadowBlur = 9;
+            ctx.stroke();
+            ctx.restore();
           }
 
           level.bumpers.forEach((bumper, index) => {
