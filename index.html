@@ -967,13 +967,15 @@
           respawn: { ...levels[0].start },
           hitCooldown: 0,
           particles: [],
+          demoProgress: 0,
+          demoZ: 0,
         };
 
         const copy = {
           ready: () => ({
-            eyebrow: "Stage 01 ready",
-            title: "Roll with precision.",
-            body: "Reach the gold target before time expires. Green rings save your respawn point.",
+            eyebrow: `Auto demo • Stage ${String(sim.level + 1).padStart(2, "0")}`,
+            title: "Watch the solution.",
+            body: "The marble is previewing all three courses. Start the run whenever you are ready.",
             action: "Start run",
           }),
           playing: () => ({
@@ -1127,6 +1129,42 @@
           return route;
         }
 
+        function updateAttractMode(delta) {
+          const level = levels[sim.level];
+          const route = solutionPath(level);
+          if (route.length < 2) return;
+
+          const lastSegment = route.length - 1;
+          sim.demoProgress += delta * 2;
+
+          if (sim.demoProgress >= lastSegment + 1.35) {
+            sim.level = (sim.level + 1) % levels.length;
+            const nextLevel = levels[sim.level];
+            const nextRoute = solutionPath(nextLevel);
+            sim.demoProgress = 0;
+            sim.x = nextRoute[0]?.x ?? nextLevel.start.x;
+            sim.y = nextRoute[0]?.y ?? nextLevel.start.y;
+            sim.demoZ = nextRoute[0]?.z ?? 0;
+            sim.time = nextLevel.time;
+            sim.respawn = { ...nextLevel.start };
+            sim.vx = 0;
+            sim.vy = 0;
+            syncHud();
+            return;
+          }
+
+          const routePosition = Math.min(sim.demoProgress, lastSegment);
+          const segment = Math.min(Math.floor(routePosition), lastSegment - 1);
+          const amount = Math.min(1, routePosition - segment);
+          const from = route[segment];
+          const to = route[segment + 1];
+          sim.x = from.x + (to.x - from.x) * amount;
+          sim.y = from.y + (to.y - from.y) * amount;
+          sim.demoZ = from.z + (to.z - from.z) * amount;
+          sim.vx = (to.x - from.x) * 2;
+          sim.vy = (to.y - from.y) * 2;
+        }
+
         function enemyPosition(enemy) {
           const wave = (Math.sin(sim.clock * enemy.speed + enemy.phase) + 1) / 2;
           return {
@@ -1188,8 +1226,8 @@
 
         function primaryAction() {
           if (sim.status === "ready") {
-            sim.status = "playing";
-            tone(660, 0.1);
+            resetLevel(0, false);
+            return;
           } else if (sim.status === "paused") {
             sim.status = "playing";
             tone(520, 0.07);
@@ -1283,6 +1321,11 @@
           const level = levels[sim.level];
           sim.clock += delta;
           sim.hitCooldown = Math.max(0, sim.hitCooldown - delta);
+
+          if (sim.status === "ready") {
+            updateAttractMode(delta);
+            return;
+          }
 
           if (sim.status === "falling") {
             sim.fall += delta;
@@ -1801,14 +1844,15 @@
           const playerTile =
             tileAt(level, sim.x, sim.y) || tileAt(level, sim.respawn.x, sim.respawn.y);
           if (playerTile) {
-            const point = project(sim.x, sim.y, playerTile.z);
+            const playerZ = sim.status === "ready" ? sim.demoZ : playerTile.z;
+            const point = project(sim.x, sim.y, playerZ);
             const falling = sim.status === "falling";
             const fallDistance = falling ? sim.fall * sim.fall * 115 : 0;
             const scale = falling ? Math.max(0.25, 1 - sim.fall * 0.72) : 1;
             const radius = Math.max(9, tileWidth * 0.215) * scale;
             ctx.save();
             clipBallBehindHigherTiles(
-              playerTile.z,
+              playerZ,
               sim.x + sim.y,
               { x: point.x, y: point.y - radius * 0.74 + fallDistance },
               radius,
