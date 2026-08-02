@@ -1638,15 +1638,14 @@
               );
             });
 
-            if (occluders.length === 0) return;
-            ctx.beginPath();
-            ctx.rect(0, 0, width, height);
             occluders.forEach((shape) => {
+              ctx.beginPath();
+              ctx.rect(0, 0, width, height);
               ctx.moveTo(shape[0].x, shape[0].y);
               shape.slice(1).forEach((point) => ctx.lineTo(point.x, point.y));
               ctx.closePath();
+              ctx.clip("evenodd");
             });
-            ctx.clip("evenodd");
           }
 
           const route = solutionPath(level);
